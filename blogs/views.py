@@ -28,15 +28,17 @@ def writeBlog(request):
 
 def index(request):
     blogs = BlogModel.objects.all().select_related('author')
-    if request.user.is_authenticated:
-        request_user_blogs = BlogModel.objects.filter(author=request.user)
-    else:
-        request_user_blogs = 'Please Login to see your blogs'
+    
     context = {
         'blogs': blogs,
-        'rblogs': request_user_blogs,
 
     }
+    if request.user.is_authenticated:
+        request_user_blogs = BlogModel.objects.filter(author=request.user)
+        context['rblogs'] = request_user_blogs
+    else:
+        request_user_blogs = 'Please Login to see your blogs'
+        context['no_blogs'] = True
     return render(request, 'home.html', context=context)
 
 
@@ -44,17 +46,20 @@ def blog_detail(request, id):
     blog_obj = BlogModel.objects.get(id=id)
     comments = BlogComment.objects.filter(
         blog=blog_obj).select_related('cauthor')
-    if request.user.is_authenticated:
-        request_user_blogs = BlogModel.objects.filter(author=request.user)
-    else:
-        request_user_blogs = 'Please Login to see your blogs'
-
+    
     context = {
         'blog': blog_obj,
-        'rblogs': request_user_blogs,
         'comments': comments
 
     }
+    
+    if request.user.is_authenticated:
+        request_user_blogs = BlogModel.objects.filter(author=request.user)
+        context['rblogs'] = request_user_blogs
+    else:
+        request_user_blogs = 'Please Login to see your blogs'
+        context['no_blogs'] = True
+
     return render(request, 'blogs/detail.html', context=context)
 
 
