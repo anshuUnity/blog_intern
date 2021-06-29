@@ -30,6 +30,9 @@
             <p><a href="{{rblog.get_absolute_url}}">{{rblog.title}}</a></p>
             <hr>
             {% endfor %}
+            {% if no_blogs %}
+            <h5>Please <a href="{% url 'accounts:login' %}">Login</a> to see your blogs</h5>
+            {% endif %}
         </div>
     </div>
 </div>
