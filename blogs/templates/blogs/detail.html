@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}{{blog.title}}{% endblock %}
+
+{% block content %}
+
+<style>
+    .not-visible {
+        display: none;
+    }
+</style>
+
+<div class="container mt-3">
+    <div class="row">
+        <div class="col-xl-8 col-lg-7">
+            <h4>{{blog.title|title}}</h4>
+            <p>{{blog.body}}</p>
+            <span>Written by <b>{{blog.author.username}}</b></span>
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+                Share this Blog
+            </button>
+            {% with comments.count as total_comments %}
+            <h5>
+                {{ total_comments }} comment{{ total_comments|pluralize }}
+            </h5>
+            {% endwith %}
+            <hr>
+            {% if request.user.is_authenticated %}
+            <form class="comment--form mt-4" id="comment_form" method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <textarea class="form-control" id="comment-textArea" name="comment" placeholder="Comment Your View"
+                        required></textarea>
+                </div>
+                <input type="hidden" name="id" id="blog_id" value="{{blog.id}}">
+                <input type="submit" value="Post Comment" class="btn btn-primary">
+            </form>
+            {% else %}
+            <h4>Please <a href="{% url 'accounts:login' %}">Login</a> to Comment on the blog</h4>
+            {% endif %}
+            <hr>
+            <div class="comment_div" id="comment_div_id">
+                <div class="spinner-grow text-success not-visible" role="status" id="loader">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                {% if comments %}
+                {% for comment in comments %}
+                <p>{{comment.comment}}</p>
+                <span>Comment Posted By <b><i>{{comment.cauthor}}</i></b> on {{comment.publish}}</span>
+                <hr>
+                {% endfor %}
+                {% else %}
+                <h5>No Comments in this blog</h5>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-xl-4 test col-lg-5">
+            <h5>My Blogs</h5>
+            {% for rblog in rblogs %}
+            <p><a href="{{rblog.get_absolute_url}}">{{rblog.title}}</a></p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="spinner-border text-primary not-visible" role="status" id="share-loader">
+                <span class="sr-only">Loading...</span>
+            </div>
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Share Blog</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="share-form">
+                    <div class="form-group">
+                        <label for="exampleFormControlInput1">Email address</label>
+                        <input type="email" class="form-control" id="exampleFormControlInput1"
+                            placeholder="Email of user you want to share with" name="user_email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleFormControlTextarea1">Message(Optional)</label>
+                        <textarea class="form-control" name="share_textArea" id="exampleFormControlTextarea1"
+                            rows="3"></textarea>
+                    </div>
+                    <input type="submit" value="Share" class="btn btn-primary">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+            <div class="alert alert-success not-visible" id="success-alert" role="alert">
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const comment_div = document.getElementById('comment_div_id');
+    const loader = document.getElementById('loader');
+    $('#comment_form').submit(function (e) {
+        e.preventDefault();
+        var comment = document.getElementById('comment-textArea').value
+        var id = document.getElementById('blog_id').value
+        console.log(id);
+        $.ajax({
+            type: 'POST',
+            url: '{% url "blogs:comment" %}',
+            data: {
+                'id': id,
+                'comment': comment,
+                'csrfmiddlewaretoken': '{{csrf_token}}',
+            },
+            beforeSend: function () {
+                loader.classList.remove('not-visible');
+            },
+            success: function (response) {
+                $('#comment_form').trigger('reset');
+                loader.classList.add('not-visible');
+                comment_div.innerHTML += `<p>${response.comment}</p>
+                                            <span>Comment Posted By <b><i>${response.author}</i></b></span>
+                                          <hr>`;
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+    });
+
+    const share_loader = document.getElementById('share-loader')
+
+    $('#share-form').submit(function (e) {
+        e.preventDefault();
+        const user_email = document.getElementById('exampleFormControlInput1').value;
+        var id = document.getElementById('blog_id').value;
+        const success_alert = document.getElementById('success-alert');
+
+        $.ajax({
+            type: 'POST',
+            url: '{% url "blogs:share" %}',
+            data: {
+                'user_email': user_email,
+                'id': id,
+
+            },
+            dataType: 'json',
+            beforeSend: function () {
+                share_loader.classList.remove('not-visible');
+            },
+            success: function (response) {
+                $('#share-form').trigger('reset');
+                share_loader.classList.add('not-visible');
+                success_alert.classList.remove('not-visible');
+                success_alert.innerHTML = `${response.Success}`
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+    });
+</script>
+{% endblock %}
